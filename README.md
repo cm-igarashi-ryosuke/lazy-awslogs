@@ -9,7 +9,7 @@ Inspired by [jorgebastida/awslogs: AWS CloudWatch logs for Humans™](https://gi
 
 ## Demo
 
-![demo](https://github.com/cm-igarashi-ryosuke/lazy-awslogs/demo.gif)
+![demo](https://github.com/cm-igarashi-ryosuke/lazy-awslogs/blob/master/demo.gif)
 
 ## Features
 
