@@ -17,7 +17,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"math"
 
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	Aws "github.com/cm-igarashi-ryosuke/lazy-awslogs/lib/aws"
@@ -45,10 +44,10 @@ func (this *GetFlags) GetCloudWatchLogsFilterLogEventsParam() cloudwatchlogs.Fil
 		LogStreamNames: []*string{&this.Log.Stream},
 		FilterPattern:  &pattern,
 	}
-	if startTime != math.MaxInt64 {
+	if startTime != 0 {
 		input.StartTime = &startTime
 	}
-	if endTime != math.MaxInt64 {
+	if endTime != 0 {
 		input.EndTime = &endTime
 	}
 	return input
@@ -62,10 +61,10 @@ func (this *GetFlags) GetCloudWatchLogsGetLogEventsParam() cloudwatchlogs.GetLog
 		LogGroupName:  &this.Log.Group,
 		LogStreamName: &this.Log.Stream,
 	}
-	if startTime != math.MaxInt64 {
+	if startTime != 0 {
 		input.StartTime = &startTime
 	}
-	if endTime != math.MaxInt64 {
+	if endTime != 0 {
 		input.EndTime = &endTime
 	}
 	return input
