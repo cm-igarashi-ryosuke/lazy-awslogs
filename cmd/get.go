@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"math"
 
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	Aws "github.com/cm-igarashi-ryosuke/lazy-awslogs/lib/aws"
@@ -39,25 +40,35 @@ func (this *GetFlags) GetCloudWatchLogsFilterLogEventsParam() cloudwatchlogs.Fil
 	startTime := this.TimeRange.StartTimeMilliseconds()
 	endTime := this.TimeRange.EndTimeMilliseconds()
 	pattern := fmt.Sprintf("\"%s\"", this.Pattern)
-	return cloudwatchlogs.FilterLogEventsInput{
+	input := cloudwatchlogs.FilterLogEventsInput{
 		LogGroupName:   &this.Log.Group,
 		LogStreamNames: []*string{&this.Log.Stream},
-		StartTime:      &startTime,
-		EndTime:        &endTime,
 		FilterPattern:  &pattern,
 	}
+	if startTime != math.MaxInt64 {
+		input.StartTime = &startTime
+	}
+	if endTime != math.MaxInt64 {
+		input.EndTime = &endTime
+	}
+	return input
 }
 
 // Create GetLogEventsInput by GetFlags
 func (this *GetFlags) GetCloudWatchLogsGetLogEventsParam() cloudwatchlogs.GetLogEventsInput {
 	startTime := this.TimeRange.StartTimeMilliseconds()
 	endTime := this.TimeRange.EndTimeMilliseconds()
-	return cloudwatchlogs.GetLogEventsInput{
+	input := cloudwatchlogs.GetLogEventsInput{
 		LogGroupName:  &this.Log.Group,
 		LogStreamName: &this.Log.Stream,
-		StartTime:     &startTime,
-		EndTime:       &endTime,
 	}
+	if startTime != math.MaxInt64 {
+		input.StartTime = &startTime
+	}
+	if endTime != math.MaxInt64 {
+		input.EndTime = &endTime
+	}
+	return input
 }
 
 var _getFlags = &GetFlags{}
@@ -136,7 +147,7 @@ func getRun(cmd *cobra.Command, args []string) {
 	}
 	if err != nil {
 		fmt.Println(err.Error())
-		os.Exit(2) // TODO: exit codeも仕様明記しないと
+		os.Exit(2)
 	}
 }
 

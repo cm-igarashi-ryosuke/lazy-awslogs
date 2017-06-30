@@ -18,6 +18,9 @@ func (this *CWLogTimeRange) String() string {
 }
 
 func (this *CWLogTimeRange) StartTimeMilliseconds() int64 {
+	if this.startString == "" {
+		return 0
+	}
 	time, err := KindlyTime.ParseBaseOnCurrentTime(this.startString)
 	if err != nil {
 		fmt.Errorf("Unrecognized start-time option -- %s\n", err.Error())
@@ -27,6 +30,9 @@ func (this *CWLogTimeRange) StartTimeMilliseconds() int64 {
 }
 
 func (this *CWLogTimeRange) EndTimeMilliseconds() int64 {
+	if this.endString == "" {
+		return 0
+	}
 	time, err := KindlyTime.ParseBaseOnCurrentTime(this.endString)
 	if err != nil {
 		fmt.Errorf("Unrecognized end-time option -- %s\n", err.Error())
@@ -37,6 +43,6 @@ func (this *CWLogTimeRange) EndTimeMilliseconds() int64 {
 
 // pflag.FlagSetからCWLogTimeRangeをロードする
 func (this *CWLogTimeRange) Load(pflag *Pflag.FlagSet) {
-	pflag.StringVarP(&this.startString, "start-time", "", "30 minutes ago", "The start of the time range, expressed as the number of milliseconds since Jan 1, 1970 00:00:00 UTC. Events with a timestamp earlier than this time are not included.")
-	pflag.StringVarP(&this.endString, "end-time", "", "now", "The end of the time range, expressed as the number of milliseconds since Jan 1, 1970 00:00:00 UTC. Events with a timestamp later than this time are not included.")
+	pflag.StringVarP(&this.startString, "start-time", "", "", "The start of the time range, expressed as the number of milliseconds since Jan 1, 1970 00:00:00 UTC. Events with a timestamp earlier than this time are not included.")
+	pflag.StringVarP(&this.endString, "end-time", "", "", "The end of the time range, expressed as the number of milliseconds since Jan 1, 1970 00:00:00 UTC. Events with a timestamp later than this time are not included.")
 }
