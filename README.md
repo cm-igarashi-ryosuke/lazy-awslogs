@@ -1,5 +1,7 @@
 # lazy-awslogs
 
+[![Join the chat at https://gitter.im/lazyawslogs/Lobby](https://badges.gitter.im/lazyawslogs/Lobby.svg)](https://gitter.im/lazyawslogs/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 "lazy-awslogs" is a tool for Amazon CloudWatch Logs.
 
 This command can query groups and streams, and filter events.
