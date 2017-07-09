@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	Aws "github.com/cm-igarashi-ryosuke/lazy-awslogs/lib/aws"
@@ -32,10 +33,13 @@ type GetFlags struct {
 	Log       flags.CWLogIdentifyFlags
 	Pattern   string
 	TimeRange flags.CWLogTimeRange
+	Watch     bool
 }
 
+const watchInterval = 5 // seconds
+
 // Create FilterLogEventsInput by GetFlags
-func (this *GetFlags) GetCloudWatchLogsFilterLogEventsParam() cloudwatchlogs.FilterLogEventsInput {
+func (this *GetFlags) GetCloudWatchLogsFilterLogEventsParam(nextToken *string) cloudwatchlogs.FilterLogEventsInput {
 	startTime := this.TimeRange.StartTimeMilliseconds()
 	endTime := this.TimeRange.EndTimeMilliseconds()
 	pattern := fmt.Sprintf("\"%s\"", this.Pattern)
@@ -50,11 +54,12 @@ func (this *GetFlags) GetCloudWatchLogsFilterLogEventsParam() cloudwatchlogs.Fil
 	if endTime != 0 {
 		input.EndTime = &endTime
 	}
+	input.NextToken = nextToken
 	return input
 }
 
 // Create GetLogEventsInput by GetFlags
-func (this *GetFlags) GetCloudWatchLogsGetLogEventsParam() cloudwatchlogs.GetLogEventsInput {
+func (this *GetFlags) GetCloudWatchLogsGetLogEventsParam(nextToken *string) cloudwatchlogs.GetLogEventsInput {
 	startTime := this.TimeRange.StartTimeMilliseconds()
 	endTime := this.TimeRange.EndTimeMilliseconds()
 	input := cloudwatchlogs.GetLogEventsInput{
@@ -67,7 +72,21 @@ func (this *GetFlags) GetCloudWatchLogsGetLogEventsParam() cloudwatchlogs.GetLog
 	if endTime != 0 {
 		input.EndTime = &endTime
 	}
+	input.NextToken = nextToken
 	return input
+}
+
+// Print any events to stdout
+func printEvents(any interface{}) {
+	if events, ok := any.([]*cloudwatchlogs.FilteredLogEvent); ok {
+		for _, event := range events {
+			fmt.Println(strings.TrimRight(*event.Message, "\n"))
+		}
+	} else if events, ok := any.([]*cloudwatchlogs.OutputLogEvent); ok {
+		for _, event := range events {
+			fmt.Println(strings.TrimRight(*event.Message, "\n"))
+		}
+	}
 }
 
 var _getFlags = &GetFlags{}
@@ -122,27 +141,39 @@ func getRun(cmd *cobra.Command, args []string) {
 	// fmt.Printf(">>>>> _getFlags: %#v\n", _getFlags)
 
 	cwlogsClient := Aws.NewCloudWatchLogsClient(rootFlag.GetCloudWatchLogsClientParams())
+
+	var nextToken *string
+
+Start:
 	var err error
 	if _getFlags.Pattern != "" {
-		options := _getFlags.GetCloudWatchLogsFilterLogEventsParam()
+		options := _getFlags.GetCloudWatchLogsFilterLogEventsParam(nextToken)
 		if rootFlag.verbose {
 			fmt.Printf("FilterLogEvents: options=%v\n", options)
 		}
 		err = cwlogsClient.FilterLogEvents(&options, func(out *cloudwatchlogs.FilterLogEventsOutput) {
-			for _, event := range out.Events {
-				fmt.Println(strings.TrimRight(*event.Message, "\n"))
-			}
+			printEvents(out.Events)
+			nextToken = out.NextToken
 		})
 	} else {
-		options := _getFlags.GetCloudWatchLogsGetLogEventsParam()
+		options := _getFlags.GetCloudWatchLogsGetLogEventsParam(nextToken)
 		if rootFlag.verbose {
 			fmt.Printf("GetLogEvents: options=%v\n", options)
 		}
 		err = cwlogsClient.GetLogEvents(&options, func(out *cloudwatchlogs.GetLogEventsOutput) {
-			for _, event := range out.Events {
-				fmt.Println(strings.TrimRight(*event.Message, "\n"))
-			}
+			printEvents(out.Events)
+			nextToken = out.NextForwardToken
 		})
+	}
+	if _getFlags.Watch && nextToken != nil{
+		if rootFlag.verbose {
+			fmt.Printf("`watch` enabled. now sleep(%d) Zzz...\n", watchInterval)
+		}
+		time.Sleep(watchInterval * time.Second);
+		if rootFlag.verbose {
+			fmt.Println("`watch` enabled. wakeup now!")
+		}
+		goto Start
 	}
 	if err != nil {
 		fmt.Println(err.Error())
@@ -157,6 +188,7 @@ func init() {
 	_getFlags.Log.Load(localFlags)
 	_getFlags.TimeRange.Load(localFlags)
 	localFlags.StringVarP(&_getFlags.Pattern, "filter-pattern", "f", "", "The filter pattern to use. If not provided, all the events are matched.")
+	localFlags.BoolVarP(&_getFlags.Watch, "watch", "w", false, "Do not stop when end of log is reached, but rather to wait for additional data to be appended to the input.")
 
 	// There is no guarantee that _getFlags will have a value here
 	// I do not know until getRun function
