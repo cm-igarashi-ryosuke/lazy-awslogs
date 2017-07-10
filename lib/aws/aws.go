@@ -88,9 +88,11 @@ func (this *CloudWatchLogsClient) GetLogEvents(input *cloudwatchlogs.GetLogEvent
 func (this *CloudWatchLogsClient) FilterLogEvents(input *cloudwatchlogs.FilterLogEventsInput, closure func(*cloudwatchlogs.FilterLogEventsOutput)) (err error) {
 	var tokenPtr *string
 	err = this.cwLogs.FilterLogEventsPages(input, func(out *cloudwatchlogs.FilterLogEventsOutput, lastPage bool) bool {
-		if tokenPtr == nil || *tokenPtr != *out.NextToken {
+		if tokenPtr == nil || out.NextToken == nil || *tokenPtr != *out.NextToken {
 			closure(out)
-			tokenPtr = out.NextToken
+			if out.NextToken != nil {
+				tokenPtr = out.NextToken
+			}
 			return true
 		}
 		return false
