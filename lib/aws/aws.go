@@ -40,8 +40,9 @@ func NewCloudWatchLogsClient(params CloudWatchLogsClientParams) CloudWatchLogsCl
 		}
 		sess = session.Must(session.NewSessionWithOptions(session.Options{
 			// If both Config and Profile are present, Config will be given preference.
-			Config:  config,
-			Profile: params.Profile,
+			Config:            config,
+			Profile:           params.Profile,
+			SharedConfigState: session.SharedConfigEnable,
 		}))
 	}
 	return CloudWatchLogsClient{cwLogs: cloudwatchlogs.New(sess)}
