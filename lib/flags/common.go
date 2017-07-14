@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
 )
 
 type CWLogIdentifyFlags struct {
@@ -20,6 +19,6 @@ func (this *CWLogIdentifyFlags) String() string {
 
 // pflag.FlagSetからCWLogIdentifyFlagsをロードする
 func (this *CWLogIdentifyFlags) Load(pflag *pflag.FlagSet) {
-	pflag.StringVarP(&this.Group, "group", "g", viper.GetString("group"), "The name of log group")
-	pflag.StringVarP(&this.Stream, "stream", "s", viper.GetString("stream"), "The name of log stream")
+	pflag.StringVarP(&this.Group, "group", "g", "", "The name of log group")
+	pflag.StringVarP(&this.Stream, "stream", "s", "", "The name of log stream")
 }
