@@ -21,7 +21,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	Aws "github.com/cm-igarashi-ryosuke/lazy-awslogs/lib/aws"
-	Config "github.com/cm-igarashi-ryosuke/lazy-awslogs/lib/config"
 	"github.com/spf13/cobra"
 
 	"github.com/cm-igarashi-ryosuke/lazy-awslogs/lib/flags"
@@ -111,26 +110,11 @@ func preRun(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	config := Config.Load()
-	env := config.CurrentEnvironment()
-
-	if _getFlags.Log.Group == "" && env.DefaultGroup != "" {
-		_getFlags.Log.Group = env.DefaultGroup
-	}
 	if _getFlags.Log.Group == "" {
 		fmt.Printf("%v\n\n", fmt.Errorf("Error: Group is not specified."))
 		cmd.Usage()
 		os.Exit(1)
 	}
-
-	// if _getFlags.Log.Stream == "" && env.DefaultStream != "" {
-	// 	_getFlags.Log.Stream = env.DefaultStream
-	// }
-	// if _getFlags.Log.Stream == "" {
-	// 	fmt.Printf("%v\n\n", fmt.Errorf("Error: Stream is not specified."))
-	// 	cmd.Usage()
-	// 	os.Exit(1)
-	// }
 
 	if rootFlag.verbose {
 		fmt.Printf("Local flags: %#v\n", _getFlags)
