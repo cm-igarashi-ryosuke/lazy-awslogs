@@ -35,8 +35,6 @@ func configShowRun(cmd *cobra.Command, args []string) {
 	fmt.Println("EnvironmentName: " + env.Name)
 	fmt.Println("Profile:         " + env.Profile)
 	fmt.Println("Region:          " + env.Region)
-	fmt.Println("DefaultGroup:    " + env.DefaultGroup)
-	fmt.Println("DefaultStream:   " + env.DefaultStream)
 }
 
 func init() {

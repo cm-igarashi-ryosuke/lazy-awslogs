@@ -21,12 +21,10 @@ type Group struct {
 	Streams []Stream
 }
 type Environment struct {
-	Name          string
-	Profile       string
-	Region        string
-	DefaultGroup  string
-	DefaultStream string
-	Groups        []Group
+	Name    string
+	Profile string
+	Region  string
+	Groups  []Group
 }
 type Configuration struct {
 	Current      string
@@ -38,8 +36,6 @@ const (
 	Name EnvironmentKey = iota
 	Profile
 	Region
-	DefaultGroup
-	DefaultStream
 )
 
 // Load returns a Configuration object.
@@ -130,10 +126,6 @@ func (this *Configuration) SetCurrentEnvironmentParam(key EnvironmentKey, value 
 		env.Profile = value
 	case Region:
 		env.Region = value
-	case DefaultGroup:
-		env.DefaultGroup = value
-	case DefaultStream:
-		env.DefaultStream = value
 	}
 	this.save()
 	return
