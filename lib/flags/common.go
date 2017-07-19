@@ -11,15 +11,16 @@ import (
 
 type CWLogIdentifyFlags struct {
 	Group  string
-	Stream string
+	Streams []*string
 }
 
 func (this *CWLogIdentifyFlags) String() string {
-	return fmt.Sprintf("CWLogIdentify={group=%s, stream=%s}", this.Group, this.Stream)
+	return fmt.Sprintf("CWLogIdentify={group=%s, streams=%s}", this.Group, this.Streams)
 }
 
 // pflag.FlagSetからCWLogIdentifyFlagsをロードする
 func (this *CWLogIdentifyFlags) Load(pflag *pflag.FlagSet) {
 	pflag.StringVarP(&this.Group, "group", "g", viper.GetString("group"), "The name of log group")
-	pflag.StringVarP(&this.Stream, "stream", "s", viper.GetString("stream"), "The name of log stream")
+	var strings []string = []string{}
+	pflag.StringSliceVarP(&strings, "streams", "s", viper.GetStringSlice("stream"), "The names of log stream")
 }

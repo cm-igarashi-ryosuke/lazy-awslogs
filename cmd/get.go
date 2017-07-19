@@ -41,7 +41,7 @@ func (this *GetFlags) GetCloudWatchLogsFilterLogEventsParam() cloudwatchlogs.Fil
 	pattern := fmt.Sprintf("\"%s\"", this.Pattern)
 	input := cloudwatchlogs.FilterLogEventsInput{
 		LogGroupName:   &this.Log.Group,
-		LogStreamNames: []*string{&this.Log.Stream},
+		LogStreamNames: this.Log.Streams,
 		FilterPattern:  &pattern,
 	}
 	if startTime != 0 {
@@ -59,7 +59,7 @@ func (this *GetFlags) GetCloudWatchLogsGetLogEventsParam() cloudwatchlogs.GetLog
 	endTime := this.TimeRange.EndTimeMilliseconds()
 	input := cloudwatchlogs.GetLogEventsInput{
 		LogGroupName:  &this.Log.Group,
-		LogStreamName: &this.Log.Stream,
+		LogStreamName: this.Log.Streams[0],
 	}
 	if startTime != 0 {
 		input.StartTime = &startTime
@@ -104,13 +104,15 @@ func preRun(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	if _getFlags.Log.Stream == "" && env.DefaultStream != "" {
-		_getFlags.Log.Stream = env.DefaultStream
-	}
-	if _getFlags.Log.Stream == "" {
-		fmt.Printf("%v\n\n", fmt.Errorf("Error: Stream is not specified."))
-		cmd.Usage()
-		os.Exit(1)
+	if _getFlags.Pattern == "" {
+		if len(_getFlags.Log.Streams) == 0 && env.DefaultStream != "" {
+			_getFlags.Log.Streams = []*string{&env.DefaultStream}
+		}
+		if len(_getFlags.Log.Streams) == 0 {
+			fmt.Printf("%v\n\n", fmt.Errorf("Error: Stream is not specified."))
+			cmd.Usage()
+			os.Exit(1)
+		}
 	}
 
 	if rootFlag.verbose {
