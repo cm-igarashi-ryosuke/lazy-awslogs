@@ -80,6 +80,7 @@ func printEvents(any interface{}) {
 	if events, ok := any.([]*cloudwatchlogs.FilteredLogEvent); ok {
 		for _, event := range events {
 			fmt.Print("[" + time.Unix(*event.Timestamp / 1000, 0).String() + "] ")
+			fmt.Print("[" + *event.LogStreamName + "] ")
 			fmt.Println(strings.TrimRight(*event.Message, "\n"))
 		}
 	} else if events, ok := any.([]*cloudwatchlogs.OutputLogEvent); ok {
