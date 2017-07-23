@@ -7,6 +7,8 @@ import (
 	"log"
 	"os"
 
+	"path/filepath"
+
 	homedir "github.com/mitchellh/go-homedir"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -76,7 +78,7 @@ func configurationFilePath() string {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	return home + "/" + FileName + ".yaml"
+	return filepath.Join(home, FileName+".yaml")
 }
 
 // CurrentEnvironment returns Environment current.
