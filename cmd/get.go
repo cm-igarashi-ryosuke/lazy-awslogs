@@ -27,21 +27,20 @@ import (
 )
 
 type GetFlags struct {
-	Profile      string
-	Region       string
-	Log          flags.CWLogIdentifyFlags
-	Pattern      string
-	TimeRange    flags.CWLogTimeRange
-	Watch        bool
+	Profile   string
+	Region    string
+	Log       flags.CWLogIdentifyFlags
+	Pattern   string
+	TimeRange flags.CWLogTimeRange
+	Watch     bool
 }
 
 const watchInterval = 5 // seconds
 
 // Create FilterLogEventsInput by GetFlags
-func (this *GetFlags) GetCloudWatchLogsFilterLogEventsParam(nextToken *string) cloudwatchlogs.FilterLogEventsInput {
+func (this *GetFlags) GetCloudWatchLogsFilterLogEventsParam() cloudwatchlogs.FilterLogEventsInput {
 	input := cloudwatchlogs.FilterLogEventsInput{
 		LogGroupName: &this.Log.Group,
-		NextToken:    nextToken,
 	}
 	if this.Pattern != "" {
 		pattern := fmt.Sprintf("\"%s\"", this.Pattern)
@@ -60,11 +59,10 @@ func (this *GetFlags) GetCloudWatchLogsFilterLogEventsParam(nextToken *string) c
 }
 
 // Create GetLogEventsInput by GetFlags
-func (this *GetFlags) GetCloudWatchLogsGetLogEventsParam(nextToken *string) cloudwatchlogs.GetLogEventsInput {
+func (this *GetFlags) GetCloudWatchLogsGetLogEventsParam() cloudwatchlogs.GetLogEventsInput {
 	input := cloudwatchlogs.GetLogEventsInput{
 		LogGroupName:  &this.Log.Group,
 		LogStreamName: &this.Log.Stream,
-		NextToken:     nextToken,
 	}
 	if startTime := this.TimeRange.StartTimeMilliseconds(); startTime != 0 {
 		input.StartTime = &startTime
@@ -79,13 +77,13 @@ func (this *GetFlags) GetCloudWatchLogsGetLogEventsParam(nextToken *string) clou
 func printEvents(any interface{}) {
 	if events, ok := any.([]*cloudwatchlogs.FilteredLogEvent); ok {
 		for _, event := range events {
-			fmt.Print("[" + time.Unix(*event.Timestamp / 1000, 0).String() + "] ")
+			fmt.Print("[" + time.Unix(*event.Timestamp/1000, 0).String() + "] ")
 			fmt.Print("[" + *event.LogStreamName + "] ")
 			fmt.Println(strings.TrimRight(*event.Message, "\n"))
 		}
 	} else if events, ok := any.([]*cloudwatchlogs.OutputLogEvent); ok {
 		for _, event := range events {
-			fmt.Print("[" + time.Unix(*event.Timestamp / 1000, 0).String() + "] ")
+			fmt.Print("[" + time.Unix(*event.Timestamp/1000, 0).String() + "] ")
 			fmt.Println(strings.TrimRight(*event.Message, "\n"))
 		}
 	}
@@ -125,46 +123,79 @@ func preRun(cmd *cobra.Command, args []string) {
 }
 
 func getRun(cmd *cobra.Command, args []string) {
-	// fmt.Printf(">>>>> _getFlags: %#v\n", _getFlags)
-
 	cwlogsClient := Aws.NewCloudWatchLogsClient(rootFlag.GetCloudWatchLogsClientParams())
-
-	var nextToken *string
-
-Start:
 	var err error
-	if _getFlags.Pattern != "" || _getFlags.Log.Stream == "" {
-		options := _getFlags.GetCloudWatchLogsFilterLogEventsParam(nextToken)
-		if rootFlag.verbose {
-			fmt.Printf("FilterLogEvents: options=%v\n", options)
+
+	if _getFlags.Watch {
+		startTime := time.Now().Add(-1*time.Duration(1)*time.Minute).Unix() * 1000
+		endTime := time.Now().Unix() * 1000
+
+	WatchStart:
+		if _getFlags.Pattern != "" || _getFlags.Log.Stream == "" {
+			options := _getFlags.GetCloudWatchLogsFilterLogEventsParam()
+			options.StartTime = &startTime
+			options.EndTime = &endTime
+			if rootFlag.verbose {
+				fmt.Printf("FilterLogEvents: options=%v\n", options)
+			}
+			err = cwlogsClient.FilterLogEvents(&options, func(out *cloudwatchlogs.FilterLogEventsOutput) {
+				printEvents(out.Events)
+				if l := len(out.Events); l > 0 {
+					startTime = *out.Events[l-1].Timestamp
+					startTime = startTime + 1
+				}
+			})
+		} else {
+			options := _getFlags.GetCloudWatchLogsGetLogEventsParam()
+			options.StartTime = &startTime
+			options.EndTime = &endTime
+			if rootFlag.verbose {
+				fmt.Printf("GetLogEvents: options=%v\n", options)
+			}
+			err = cwlogsClient.GetLogEvents(&options, func(out *cloudwatchlogs.GetLogEventsOutput) {
+				printEvents(out.Events)
+				if l := len(out.Events); l > 0 {
+					startTime = *out.Events[l-1].Timestamp
+					startTime = startTime + 1
+				}
+			})
 		}
-		err = cwlogsClient.FilterLogEvents(&options, func(out *cloudwatchlogs.FilterLogEventsOutput) {
-			printEvents(out.Events)
-			nextToken = out.NextToken
-		})
+		if err == nil {
+			if rootFlag.verbose {
+				fmt.Printf("`watch` enabled. now sleep(%d) Zzz...\n", watchInterval)
+			}
+			time.Sleep(watchInterval * time.Second)
+			if rootFlag.verbose {
+				fmt.Println("`watch` enabled. wakeup now!")
+			}
+			endTime = time.Now().Unix() * 1000
+			goto WatchStart
+		} else {
+			fmt.Println(err.Error())
+			os.Exit(2)
+		}
 	} else {
-		options := _getFlags.GetCloudWatchLogsGetLogEventsParam(nextToken)
-		if rootFlag.verbose {
-			fmt.Printf("GetLogEvents: options=%v\n", options)
+		if _getFlags.Pattern != "" || _getFlags.Log.Stream == "" {
+			options := _getFlags.GetCloudWatchLogsFilterLogEventsParam()
+			if rootFlag.verbose {
+				fmt.Printf("FilterLogEvents: options=%v\n", options)
+			}
+			err = cwlogsClient.FilterLogEvents(&options, func(out *cloudwatchlogs.FilterLogEventsOutput) {
+				printEvents(out.Events)
+			})
+		} else {
+			options := _getFlags.GetCloudWatchLogsGetLogEventsParam()
+			if rootFlag.verbose {
+				fmt.Printf("GetLogEvents: options=%v\n", options)
+			}
+			err = cwlogsClient.GetLogEvents(&options, func(out *cloudwatchlogs.GetLogEventsOutput) {
+				printEvents(out.Events)
+			})
 		}
-		err = cwlogsClient.GetLogEvents(&options, func(out *cloudwatchlogs.GetLogEventsOutput) {
-			printEvents(out.Events)
-			nextToken = out.NextForwardToken
-		})
-	}
-	if _getFlags.Watch && nextToken != nil {
-		if rootFlag.verbose {
-			fmt.Printf("`watch` enabled. now sleep(%d) Zzz...\n", watchInterval)
+		if err != nil {
+			fmt.Println(err.Error())
+			os.Exit(2)
 		}
-		time.Sleep(watchInterval * time.Second)
-		if rootFlag.verbose {
-			fmt.Println("`watch` enabled. wakeup now!")
-		}
-		goto Start
-	}
-	if err != nil {
-		fmt.Println(err.Error())
-		os.Exit(2)
 	}
 }
 
