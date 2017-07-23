@@ -21,8 +21,6 @@ import (
 type configSetFlag struct {
 	profile string
 	region  string
-	group   string
-	stream  string
 }
 
 var _configSetFlag configSetFlag
@@ -43,18 +41,10 @@ func configSetRun(cmd *cobra.Command, args []string) {
 	if _configSetFlag.region != "" {
 		config.SetCurrentEnvironmentParam(Config.Region, _configSetFlag.region)
 	}
-	if _configSetFlag.group != "" {
-		config.SetCurrentEnvironmentParam(Config.DefaultGroup, _configSetFlag.group)
-	}
-	if _configSetFlag.stream != "" {
-		config.SetCurrentEnvironmentParam(Config.DefaultStream, _configSetFlag.stream)
-	}
 }
 
 func init() {
 	configCmd.AddCommand(configSetCmd)
 	configSetCmd.Flags().StringVarP(&_configSetFlag.profile, "config-profile", "", "", "Set default AWS credentials profile")
 	configSetCmd.Flags().StringVarP(&_configSetFlag.region, "config-region", "", "", "Set default AWS Region")
-	configSetCmd.Flags().StringVarP(&_configSetFlag.group, "config-group", "", "", "Set default log group name")
-	configSetCmd.Flags().StringVarP(&_configSetFlag.stream, "config-stream", "", "", "Set default log stream name")
 }

@@ -21,58 +21,57 @@ import (
 
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	Aws "github.com/cm-igarashi-ryosuke/lazy-awslogs/lib/aws"
-	Config "github.com/cm-igarashi-ryosuke/lazy-awslogs/lib/config"
 	"github.com/spf13/cobra"
 
 	"github.com/cm-igarashi-ryosuke/lazy-awslogs/lib/flags"
 )
 
 type GetFlags struct {
-	Profile   string
-	Region    string
-	Log       flags.CWLogIdentifyFlags
-	Pattern   string
-	TimeRange flags.CWLogTimeRange
-	Watch     bool
+	Profile      string
+	Region       string
+	Log          flags.CWLogIdentifyFlags
+	Pattern      string
+	TimeRange    flags.CWLogTimeRange
+	Watch        bool
 }
 
 const watchInterval = 5 // seconds
 
 // Create FilterLogEventsInput by GetFlags
 func (this *GetFlags) GetCloudWatchLogsFilterLogEventsParam(nextToken *string) cloudwatchlogs.FilterLogEventsInput {
-	startTime := this.TimeRange.StartTimeMilliseconds()
-	endTime := this.TimeRange.EndTimeMilliseconds()
-	pattern := fmt.Sprintf("\"%s\"", this.Pattern)
 	input := cloudwatchlogs.FilterLogEventsInput{
-		LogGroupName:   &this.Log.Group,
-		LogStreamNames: []*string{&this.Log.Stream},
-		FilterPattern:  &pattern,
+		LogGroupName: &this.Log.Group,
+		NextToken:    nextToken,
 	}
-	if startTime != 0 {
+	if this.Pattern != "" {
+		pattern := fmt.Sprintf("\"%s\"", this.Pattern)
+		input.FilterPattern = &pattern
+	}
+	if this.Log.Stream != "" {
+		input.LogStreamNames = []*string{&this.Log.Stream}
+	}
+	if startTime := this.TimeRange.StartTimeMilliseconds(); startTime != 0 {
 		input.StartTime = &startTime
 	}
-	if endTime != 0 {
+	if endTime := this.TimeRange.EndTimeMilliseconds(); endTime != 0 {
 		input.EndTime = &endTime
 	}
-	input.NextToken = nextToken
 	return input
 }
 
 // Create GetLogEventsInput by GetFlags
 func (this *GetFlags) GetCloudWatchLogsGetLogEventsParam(nextToken *string) cloudwatchlogs.GetLogEventsInput {
-	startTime := this.TimeRange.StartTimeMilliseconds()
-	endTime := this.TimeRange.EndTimeMilliseconds()
 	input := cloudwatchlogs.GetLogEventsInput{
 		LogGroupName:  &this.Log.Group,
 		LogStreamName: &this.Log.Stream,
+		NextToken:     nextToken,
 	}
-	if startTime != 0 {
+	if startTime := this.TimeRange.StartTimeMilliseconds(); startTime != 0 {
 		input.StartTime = &startTime
 	}
-	if endTime != 0 {
+	if endTime := this.TimeRange.EndTimeMilliseconds(); endTime != 0 {
 		input.EndTime = &endTime
 	}
-	input.NextToken = nextToken
 	return input
 }
 
@@ -111,23 +110,8 @@ func preRun(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	config := Config.Load()
-	env := config.CurrentEnvironment()
-
-	if _getFlags.Log.Group == "" && env.DefaultGroup != "" {
-		_getFlags.Log.Group = env.DefaultGroup
-	}
 	if _getFlags.Log.Group == "" {
 		fmt.Printf("%v\n\n", fmt.Errorf("Error: Group is not specified."))
-		cmd.Usage()
-		os.Exit(1)
-	}
-
-	if _getFlags.Log.Stream == "" && env.DefaultStream != "" {
-		_getFlags.Log.Stream = env.DefaultStream
-	}
-	if _getFlags.Log.Stream == "" {
-		fmt.Printf("%v\n\n", fmt.Errorf("Error: Stream is not specified."))
 		cmd.Usage()
 		os.Exit(1)
 	}
@@ -146,7 +130,7 @@ func getRun(cmd *cobra.Command, args []string) {
 
 Start:
 	var err error
-	if _getFlags.Pattern != "" {
+	if _getFlags.Pattern != "" || _getFlags.Log.Stream == "" {
 		options := _getFlags.GetCloudWatchLogsFilterLogEventsParam(nextToken)
 		if rootFlag.verbose {
 			fmt.Printf("FilterLogEvents: options=%v\n", options)
@@ -165,11 +149,11 @@ Start:
 			nextToken = out.NextForwardToken
 		})
 	}
-	if _getFlags.Watch && nextToken != nil{
+	if _getFlags.Watch && nextToken != nil {
 		if rootFlag.verbose {
 			fmt.Printf("`watch` enabled. now sleep(%d) Zzz...\n", watchInterval)
 		}
-		time.Sleep(watchInterval * time.Second);
+		time.Sleep(watchInterval * time.Second)
 		if rootFlag.verbose {
 			fmt.Println("`watch` enabled. wakeup now!")
 		}
