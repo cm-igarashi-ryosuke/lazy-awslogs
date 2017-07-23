@@ -79,8 +79,6 @@ $ lazy-awslogs config show
 EnvironmentName: staging
 Profile:         staging-profile
 Region:          us-east-1
-DefaultGroup:
-DefaultStream:
 
 $ lazy-awslogs config use production
 
@@ -93,8 +91,6 @@ $ lazy-awslogs config show
 EnvironmentName: production
 Profile:         production-profile
 Region:          us-east-1
-DefaultGroup:
-DefaultStream:
 ```
 
 Note that `config` command make a configuration file at `~/.lazy-awslogs.yaml` by default.
