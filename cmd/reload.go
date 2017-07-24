@@ -43,12 +43,14 @@ func reloadRun(cmd *cobra.Command, args []string) {
 	// This func returns a []Stream by a specified log group name.
 	getStreams := func(logGroupName string) (streams []Config.Stream, err error) {
 		err = cwlogsClient.GetLogStreams(logGroupName, func(out *cloudwatchlogs.DescribeLogStreamsOutput) {
+			fmt.Print(".")
 			for _, logStream := range out.LogStreams {
 				streams = append(streams, Config.Stream{
 					Name: *logStream.LogStreamName,
 				})
 			}
 		})
+		fmt.Println()
 		return
 	}
 
@@ -58,6 +60,8 @@ func reloadRun(cmd *cobra.Command, args []string) {
 
 		err := cwlogsClient.GetLogGroups(func(out *cloudwatchlogs.DescribeLogGroupsOutput) {
 			for _, logGroup := range out.LogGroups {
+				fmt.Print("Loading " + *logGroup.LogGroupName + " ")
+
 				streams, err := getStreams(*logGroup.LogGroupName)
 
 				if err != nil {
