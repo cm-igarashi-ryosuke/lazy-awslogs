@@ -127,7 +127,13 @@ func getRun(cmd *cobra.Command, args []string) {
 	var err error
 
 	if _getFlags.Watch {
-		startTime := time.Now().Add(-1*time.Duration(1)*time.Minute).Unix() * 1000
+		// Initialize startTime and endTime
+		var startTime int64
+		if _getFlags.TimeRange.StartTimeMilliseconds() != 0 {
+			startTime = _getFlags.TimeRange.StartTimeMilliseconds()
+		} else {
+			startTime = time.Now().Add(-1*time.Duration(1)*time.Minute).Unix() * 1000
+		}
 		endTime := time.Now().Unix() * 1000
 
 	WatchStart:
@@ -140,6 +146,7 @@ func getRun(cmd *cobra.Command, args []string) {
 			}
 			err = cwlogsClient.FilterLogEvents(&options, func(out *cloudwatchlogs.FilterLogEventsOutput) {
 				printEvents(out.Events)
+				// Update startTime and endTime
 				if l := len(out.Events); l > 0 {
 					startTime = *out.Events[l-1].Timestamp
 					startTime = startTime + 1
@@ -154,6 +161,7 @@ func getRun(cmd *cobra.Command, args []string) {
 			}
 			err = cwlogsClient.GetLogEvents(&options, func(out *cloudwatchlogs.GetLogEventsOutput) {
 				printEvents(out.Events)
+				// Update startTime and endTime
 				if l := len(out.Events); l > 0 {
 					startTime = *out.Events[l-1].Timestamp
 					startTime = startTime + 1
