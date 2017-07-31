@@ -33,6 +33,7 @@ type GetFlags struct {
 	Pattern   string
 	TimeRange flags.CWLogTimeRange
 	Watch     bool
+	noPrefix  bool
 }
 
 const watchInterval = 5 // seconds
@@ -74,16 +75,20 @@ func (this *GetFlags) GetCloudWatchLogsGetLogEventsParam() cloudwatchlogs.GetLog
 }
 
 // Print any events to stdout
-func printEvents(any interface{}) {
+func printEvents(any interface{}, appendPrefix bool) {
 	if events, ok := any.([]*cloudwatchlogs.FilteredLogEvent); ok {
 		for _, event := range events {
-			fmt.Print("[" + time.Unix(*event.Timestamp/1000, 0).String() + "] ")
-			fmt.Print("[" + *event.LogStreamName + "] ")
+			if appendPrefix {
+				fmt.Print("[" + time.Unix(*event.Timestamp/1000, 0).String() + "] ")
+				fmt.Print("[" + *event.LogStreamName + "] ")
+			}
 			fmt.Println(strings.TrimRight(*event.Message, "\n"))
 		}
 	} else if events, ok := any.([]*cloudwatchlogs.OutputLogEvent); ok {
 		for _, event := range events {
-			fmt.Print("[" + time.Unix(*event.Timestamp/1000, 0).String() + "] ")
+			if appendPrefix {
+				fmt.Print("[" + time.Unix(*event.Timestamp/1000, 0).String() + "] ")
+			}
 			fmt.Println(strings.TrimRight(*event.Message, "\n"))
 		}
 	}
@@ -145,7 +150,7 @@ func getRun(cmd *cobra.Command, args []string) {
 				fmt.Printf("FilterLogEvents: options=%v\n", options)
 			}
 			err = cwlogsClient.FilterLogEvents(&options, func(out *cloudwatchlogs.FilterLogEventsOutput) {
-				printEvents(out.Events)
+				printEvents(out.Events, !_getFlags.noPrefix)
 				// Update startTime and endTime
 				if l := len(out.Events); l > 0 {
 					startTime = *out.Events[l-1].Timestamp
@@ -160,7 +165,7 @@ func getRun(cmd *cobra.Command, args []string) {
 				fmt.Printf("GetLogEvents: options=%v\n", options)
 			}
 			err = cwlogsClient.GetLogEvents(&options, func(out *cloudwatchlogs.GetLogEventsOutput) {
-				printEvents(out.Events)
+				printEvents(out.Events, !_getFlags.noPrefix)
 				// Update startTime and endTime
 				if l := len(out.Events); l > 0 {
 					startTime = *out.Events[l-1].Timestamp
@@ -189,7 +194,7 @@ func getRun(cmd *cobra.Command, args []string) {
 				fmt.Printf("FilterLogEvents: options=%v\n", options)
 			}
 			err = cwlogsClient.FilterLogEvents(&options, func(out *cloudwatchlogs.FilterLogEventsOutput) {
-				printEvents(out.Events)
+				printEvents(out.Events, !_getFlags.noPrefix)
 			})
 		} else {
 			options := _getFlags.GetCloudWatchLogsGetLogEventsParam()
@@ -197,7 +202,7 @@ func getRun(cmd *cobra.Command, args []string) {
 				fmt.Printf("GetLogEvents: options=%v\n", options)
 			}
 			err = cwlogsClient.GetLogEvents(&options, func(out *cloudwatchlogs.GetLogEventsOutput) {
-				printEvents(out.Events)
+				printEvents(out.Events, !_getFlags.noPrefix)
 			})
 		}
 		if err != nil {
@@ -215,6 +220,7 @@ func init() {
 	_getFlags.TimeRange.Load(localFlags)
 	localFlags.StringVarP(&_getFlags.Pattern, "filter-pattern", "f", "", "The filter pattern to use. If not provided, all the events are matched.")
 	localFlags.BoolVarP(&_getFlags.Watch, "watch", "w", false, "Do not stop when end of log is reached, but rather to wait for additional data to be appended to the input.")
+	localFlags.BoolVarP(&_getFlags.noPrefix, "no-prefix", "", false, "Do not display the time and stream name in the event at the begin of the line.")
 
 	// There is no guarantee that _getFlags will have a value here
 	// I do not know until getRun function
